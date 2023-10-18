@@ -1,0 +1,32 @@
+#!/bin/zsh
+klipper="qdbus org.kde.klipper /klipper org.kde.klipper.klipper"
+set_content="$klipper.setClipboardContents"
+clear_history="$klipper.clearClipboardHistory"
+show_klipper="$klipper.showKlipperPopupMenu"
+get_item="$klipper.getClipboardHistoryItem"
+
+function list(){
+	current_line=$(eval "$get_item 0")
+	i=1
+    while [[ -n $current_line ]]; do
+		echo $current_line
+        current_line=$(eval "$get_item $i")
+		i=$((i+1))
+	done
+}
+# Alt+N is just to free Shift+Delete
+selected=$(list | rofi -dmenu -format i -i -p "clipboard" -mesg "Alt+M : open klipper || Shift+Del : clear history" -kb-delete-entry "Alt+n" -kb-custom-1 "Shift+Delete" -kb-custom-2 "Alt+m" )
+ret=$?
+
+case $ret in
+	10)
+		eval $clear_history
+		;;
+	11)
+		eval $show_klipper
+		;;
+	0)
+		# Pull selected content back to top of history
+		eval $get_item "$selected" | head -c -1 | eval xargs -0 -IREPLACE $set_content REPLACE
+		;;
+esac
